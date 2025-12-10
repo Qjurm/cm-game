@@ -1,13 +1,28 @@
-# The Docker image that will be used to build your app
-image: nginx:latest
-create-pages:
-  pages:
-    # The folder that contains the files to be exposed at the Page URL
-    publish: public
+image: node:20-alpine
+
+pages:
+  script:
+    - npm install
+    - npm run build
+    
+    # --- HANDLING THE OUTPUT FOLDER ---
+    # React apps usually build to 'build' (CRA) or 'dist' (Vite).
+    # GitLab Pages ONLY looks in a folder named 'public'.
+    # We remove the existing public folder (if any) and rename our build output.
+    
+    - rm -rf public
+    # UNCOMMENT THE LINE BELOW THAT MATCHES YOUR TOOL:
+    - mv build public   # Use this for Create React App
+    # - mv dist public  # Use this for Vite
+
+    # --- HANDLING REACT ROUTER (The SPA Fix) ---
+    # This prevents 404 errors when refreshing a page like /about.
+    # It copies index.html to 404.html so GitLab serves the app 
+    # even on unknown routes.
+    - cp public/index.html public/404.html
+
+  artifacts:
+    paths:
+      - public
   rules:
-    # This ensures that only pushes to the default branch will trigger
-    # a pages deploy
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-  # Functions that should be executed before the build script is run
-  before_script:
-    - npm ci

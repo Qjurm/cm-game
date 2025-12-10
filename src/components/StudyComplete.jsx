@@ -1,14 +1,15 @@
 import { useEffect } from 'react'
 import useGameStore from '../store/gameStore'
 import './StudyComplete.css'
+import { supabase } from '../supabase' // <--- Import the new file
 
 function StudyComplete() {
   const { userInfo, avatar, choices, resetGame, participantId } = useGameStore()
 
-  // Auto-save data when component mounts
   useEffect(() => {
     const saveData = async () => {
-      const data = {
+      // Prepare the data object (same as you had before)
+      const dataToSave = {
         participantId: participantId,
         participant: userInfo,
         avatar: avatar,
@@ -16,33 +17,28 @@ function StudyComplete() {
         completedAt: new Date().toISOString()
       }
       
-      const dataStr = JSON.stringify(data, null, 2)
-      const filename = `study-data-${userInfo?.name || 'participant'}-${Date.now()}.json`
-      
+      // --- NEW SUPABASE SAVING LOGIC ---
       try {
-        const response = await fetch('/api/save-results', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            filename: filename,
-            data: dataStr
+        // We insert directly into the 'study_results' table in your database
+        const { error } = await supabase
+          .from('study_results') 
+          .insert({ 
+             filename: `study-${participantId}.json`, 
+             data: dataToSave // Supabase will store this JSON automatically
           })
-        })
+
+        if (error) throw error
+        console.log('✅ Study data saved to Supabase!')
         
-        if (response.ok) {
-          console.log('✅ Study data saved to test_results/' + filename)
-        } else {
-          console.error('❌ Failed to save study data')
-        }
       } catch (error) {
-        console.error('❌ Error saving study data:', error)
+        console.error('❌ Error saving study data:', error.message)
       }
     }
     
     saveData()
-  }, [])
+  }, []) // Empty dependency array means this runs once when component loads
+
+  // ... rest of your component (handleRestart, return statement, etc.)
 
   const handleRestart = () => {
     if (window.confirm('Are you sure you want to restart? This will clear all current data.')) {

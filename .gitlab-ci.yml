@@ -12,7 +12,7 @@ pages:
     
     - rm -rf public
     # UNCOMMENT THE LINE BELOW THAT MATCHES YOUR TOOL:
-    - mv build public   # Use this for Create React App
+    - mv dist public   # Use this for Create React App
     # - mv dist public  # Use this for Vite
 
     # --- HANDLING REACT ROUTER (The SPA Fix) ---

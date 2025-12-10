@@ -4,23 +4,9 @@ pages:
   script:
     - npm install
     - npm run build
-    
-    # --- HANDLING THE OUTPUT FOLDER ---
-    # React apps usually build to 'build' (CRA) or 'dist' (Vite).
-    # GitLab Pages ONLY looks in a folder named 'public'.
-    # We remove the existing public folder (if any) and rename our build output.
-    
-    - rm -rf public
-    # UNCOMMENT THE LINE BELOW THAT MATCHES YOUR TOOL:
-    - mv dist public   # Use this for Create React App
-    # - mv dist public  # Use this for Vite
-
-    # --- HANDLING REACT ROUTER (The SPA Fix) ---
-    # This prevents 404 errors when refreshing a page like /about.
-    # It copies index.html to 404.html so GitLab serves the app 
-    # even on unknown routes.
-    - cp public/index.html public/404.html
-
+    - rm -rf public      # Remove any existing public dir
+    - mv dist public     # Move Vite build output (dist) to public
+    - cp public/index.html public/404.html # Fix for React Router/SPA routing
   artifacts:
     paths:
       - public

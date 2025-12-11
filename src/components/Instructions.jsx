@@ -1,4 +1,5 @@
 import useGameStore from '../store/gameStore'
+import { FaUser } from 'react-icons/fa'
 import './Instructions.css'
 
 function Instructions() {
@@ -12,8 +13,8 @@ function Instructions() {
     <div className="instructions-container">
       <div className="instructions-card">
         <div className="header-section">
-          <div className="avatar-display" style={{ background: avatar?.color || '#667eea' }}>
-            {avatar?.emoji || '👤'}
+          <div className="avatar-display" style={{ background: avatar?.color || '#667eea', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', color: 'white' }}>
+            {avatar?.emoji || <FaUser />}
           </div>
           <h1>Game Instructions</h1>
           <p className="welcome-text">Welcome, {userInfo?.name}!</p>

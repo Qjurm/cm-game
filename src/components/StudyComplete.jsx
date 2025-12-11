@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
+import { FaCheckCircle, FaRedo } from 'react-icons/fa'
 import useGameStore from '../store/gameStore'
 import './StudyComplete.css'
-import { supabase } from '../supabase' // <--- Import the new file
 
 function StudyComplete() {
   const { userInfo, avatar, choices, resetGame, participantId } = useGameStore()
 
+  // Auto-save data when component mounts
   useEffect(() => {
     const saveData = async () => {
       // Prepare the data object (same as you had before)
@@ -19,12 +20,11 @@ function StudyComplete() {
       
       // --- NEW SUPABASE SAVING LOGIC ---
       try {
-        // We insert directly into the 'study_results' table in your database
         const { error } = await supabase
           .from('study_results') 
           .insert({ 
              filename: `study-${participantId}.json`, 
-             data: dataToSave // Supabase will store this JSON automatically
+             data: dataToSave 
           })
 
         if (error) throw error
@@ -36,9 +36,7 @@ function StudyComplete() {
     }
     
     saveData()
-  }, []) // Empty dependency array means this runs once when component loads
-
-  // ... rest of your component (handleRestart, return statement, etc.)
+  }, [])
 
   const handleRestart = () => {
     if (window.confirm('Are you sure you want to restart? This will clear all current data.')) {
@@ -49,7 +47,7 @@ function StudyComplete() {
   return (
     <div className="study-complete-container">
       <div className="study-complete-card">
-        <div className="completion-icon">✅</div>
+        <div className="completion-icon"><FaCheckCircle /></div>
         <h1>Study Complete!</h1>
         <p className="thank-you-message">
           Thank you, {userInfo?.name}, for participating in this study!
@@ -90,7 +88,7 @@ function StudyComplete() {
 
         <div className="action-buttons">
           <button className="restart-btn" onClick={handleRestart}>
-            🔄 Restart Study
+            <FaRedo /> Restart Study
           </button>
         </div>
 

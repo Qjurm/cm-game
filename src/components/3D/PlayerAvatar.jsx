@@ -5,13 +5,21 @@ import Avatar3D from './Avatar3D'
 function PlayerAvatar({ avatarType, targetPosition, onReachTarget, onReturnToMiddle }) {
   const groupRef = useRef()
   const [isWalking, setIsWalking] = useState(false)
-  const [currentPosition, setCurrentPosition] = useState([0, 0, 5])
+  const [currentPosition, setCurrentPosition] = useState([0, 0, 3.5])
   const [isReturningToMiddle, setIsReturningToMiddle] = useState(false)
-  const walkSpeed = 0.03
+  const walkSpeed = 0.0375
 
   useEffect(() => {
     if (targetPosition) {
       setIsWalking(true)
+    } else {
+      // Reset to starting position when targetPosition is null
+      setIsWalking(false)
+      setCurrentPosition([0, 0, 3.5])
+      setIsReturningToMiddle(false)
+      if (groupRef.current) {
+        groupRef.current.position.set(0, 0, 3.5)
+      }
     }
   }, [targetPosition])
 
@@ -29,16 +37,17 @@ function PlayerAvatar({ avatarType, targetPosition, onReachTarget, onReturnToMid
     // Check if reached target
     if (distance < 0.1) {
       setIsWalking(false)
+      setCurrentPosition([targetX, targetY, targetZ])
       groupRef.current.position.set(targetX, targetY, targetZ)
       
       // Check if we're returning to middle position
-      if (targetX === 0 && targetZ === 5 && isReturningToMiddle) {
+      if (targetX === 0 && targetZ === 3.5 && isReturningToMiddle) {
         setIsReturningToMiddle(false)
         if (onReturnToMiddle) {
           onReturnToMiddle()
         }
-      } else if (!isReturningToMiddle) {
-        // Just reached the stand
+      } else if (!isReturningToMiddle && !(targetX === 0 && targetZ === 3.5)) {
+        // Just reached the stand (but not the starting position)
         setIsReturningToMiddle(true)
         if (onReachTarget) {
           onReachTarget()
@@ -68,7 +77,7 @@ function PlayerAvatar({ avatarType, targetPosition, onReachTarget, onReturnToMid
 
   return (
     <group ref={groupRef} position={currentPosition}>
-      <Avatar3D avatarType={avatarType} scale={1.3} />
+      <Avatar3D avatarType={avatarType} scale={0.9} />
     </group>
   )
 }

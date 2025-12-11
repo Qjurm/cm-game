@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { useState } from 'react'
+import { FaHandPaper } from 'react-icons/fa'
 import useGameStore from '../store/gameStore'
 import Avatar3D from './3D/Avatar3D'
 import './AvatarSelection.css'
@@ -44,7 +45,7 @@ function AvatarSelection() {
 
         <div className="avatar-selection-section">
           <h1>Choose Your Avatar</h1>
-          <p className="greeting">Hello, {userInfo?.name}! 👋</p>
+          <p className="greeting">Hello, {userInfo?.name}! <FaHandPaper style={{ color: '#FFD700', transform: 'rotate(20deg)' }} /></p>
           <p className="subtitle">Select an avatar to represent you in the game</p>
           
           <div className="avatar-grid">

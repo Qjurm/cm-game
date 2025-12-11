@@ -56,7 +56,7 @@ function AnimatedNPC({ startPosition, targetPosition, delay = 0, color }) {
   })
 
   return (
-    <group ref={groupRef} position={currentPosition} scale={1.2}>
+    <group ref={groupRef} position={currentPosition} scale={0.8}>
       {/* Head */}
       <mesh position={[0, 1.35, 0]} castShadow>
         <sphereGeometry args={[0.15, 16, 16]} />

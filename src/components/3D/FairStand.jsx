@@ -1,7 +1,26 @@
-function FairStand({ position, color, choice, onStandClick, isSelected = false }) {
-  const handleClick = () => {
-    if (!isSelected && onStandClick) {
+function FairStand({ position, color, choice, onStandClick, isSelected = false, isInteractive = true }) {
+  const handleClick = (e) => {
+    console.log('🖱️ FairStand clicked:', { choice, isSelected, isInteractive, onStandClick: !!onStandClick })
+    if (!isSelected && onStandClick && isInteractive) {
+      console.log('✅ FairStand calling onStandClick')
       onStandClick(choice, position)
+    } else {
+      console.log('❌ FairStand click conditions failed:', { isSelected, hasCallback: !!onStandClick, isInteractive })
+    }
+    e.stopPropagation()
+  }
+
+  const handlePointerOver = (e) => {
+    if (isInteractive) {
+      e.stopPropagation()
+      document.body.style.cursor = 'pointer'
+    }
+  }
+
+  const handlePointerOut = (e) => {
+    if (isInteractive) {
+      e.stopPropagation()
+      document.body.style.cursor = 'default'
     }
   }
 
@@ -75,14 +94,8 @@ function FairStand({ position, color, choice, onStandClick, isSelected = false }
       <mesh 
         position={[0, 1.8, 0.65]} 
         onClick={handleClick}
-        onPointerOver={(e) => {
-          e.stopPropagation()
-          document.body.style.cursor = 'pointer'
-        }}
-        onPointerOut={(e) => {
-          e.stopPropagation()
-          document.body.style.cursor = 'default'
-        }}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
         castShadow
       >
         <boxGeometry args={[1.8, 0.8, 0.1]} />

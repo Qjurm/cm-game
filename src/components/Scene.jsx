@@ -7,7 +7,7 @@ import Sky from './3D/Sky'
 function Scene() {
   return (
     <Canvas
-      camera={{ position: [0, 2, 8], fov: 50 }}
+      camera={{ position: [0, 5, 10], fov: 65 }}
       shadows
       style={{ background: '#87CEEB' }}
     >

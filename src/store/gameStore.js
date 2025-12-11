@@ -16,7 +16,7 @@ const useGameStore = create((set, get) => ({
   // Data collection
   choices: [],
   
-  // IMPORTANT: 5 scenarios total
+  // IMPORTANT: 6 scenarios total
   scenarios: [
     {
       id: 1,
@@ -54,6 +54,17 @@ const useGameStore = create((set, get) => ({
           { count: 2, delay: 4000 },
           { count: 2, delay: 6000 }
         ]
+      }
+    },
+    {
+      id: 6,
+      type: 'ferris-wheel-queue',
+      question: 'Choose a ferris wheel',
+      leftWheel: {
+        queueSize: 20
+      },
+      rightWheel: {
+        queueSize: 5
       }
     }
   ],

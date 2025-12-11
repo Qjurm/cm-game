@@ -1,12 +1,11 @@
 import { useEffect } from 'react'
-import { FaCheckCircle, FaRedo } from 'react-icons/fa'
 import useGameStore from '../store/gameStore'
 import './StudyComplete.css'
+import { supabase } from '../supabase' // <--- Import the new file
 
 function StudyComplete() {
   const { userInfo, avatar, choices, resetGame, participantId } = useGameStore()
 
-  // Auto-save data when component mounts
   useEffect(() => {
     const saveData = async () => {
       // Prepare the data object (same as you had before)
@@ -47,7 +46,7 @@ function StudyComplete() {
   return (
     <div className="study-complete-container">
       <div className="study-complete-card">
-        <div className="completion-icon"><FaCheckCircle /></div>
+        <div className="completion-icon">✅</div>
         <h1>Study Complete!</h1>
         <p className="thank-you-message">
           Thank you, {userInfo?.name}, for participating in this study!
@@ -88,7 +87,7 @@ function StudyComplete() {
 
         <div className="action-buttons">
           <button className="restart-btn" onClick={handleRestart}>
-            <FaRedo /> Restart Study
+            🔄 Restart Study
           </button>
         </div>
 

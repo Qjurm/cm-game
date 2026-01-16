@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import useGameStore from '../../store/gameStore'
 import FairStand from './FairStand'
 import PlayerAvatar from './PlayerAvatar'
@@ -8,9 +8,10 @@ import Floor from './Floor'
 import Carousel from './Carousel'
 import FairEnvironment from './FairEnvironment'
 import FerrisWheel from './FerrisWheel'
-import AnimatedNPC from './AnimatedNPC'
-import Dog from './Dog'
-import Cat from './Cat'
+import InteractiveCarousel from './InteractiveCarousel'
+import Queue from './Queue'
+import Street from './Street'
+import ChristmasPath from './ChristmasPath'
 
 function GameEnvironment() {
   const { currentScenario, scenarios, avatar, recordChoice, nextScenario } = useGameStore()
@@ -18,20 +19,24 @@ function GameEnvironment() {
   const [standOpen, setStandOpen] = useState(null)
   const [avatarTarget, setAvatarTarget] = useState(null)
   const [startTime, setStartTime] = useState(Date.now())
-  
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const transitionLock = useRef(false)
+
   const scenario = scenarios[currentScenario]
 
   // Debug logging
-  console.log('GameEnvironment Render - Total Scenarios:', scenarios.length, 'Current Scenario:', currentScenario, 'Scenario Type:', scenario?.type, 'Scenario:', scenario)
+  console.log('🎮 Scenario', currentScenario + 1, 'of', scenarios.length, '- Type:', scenario?.type)
 
-  // Reset start time when scenario changes
+  // Reset states when scenario changes
   useEffect(() => {
     setStartTime(Date.now())
     setSelectedStand(null)
     setStandOpen(null)
     setAvatarTarget(null)
-    console.log('🎮 New scenario started:', currentScenario, 'Type:', scenario?.type, 'Full scenario:', scenario)
-  }, [currentScenario, scenario?.type])
+    setIsTransitioning(false)
+    transitionLock.current = false
+    console.log('✅ Scenario', currentScenario + 1, 'ready:', scenario?.type)
+  }, [currentScenario])
 
   // Safety check
   if (!scenario) {
@@ -49,115 +54,88 @@ function GameEnvironment() {
   }
 
   const handleStandClick = (choice, standPosition) => {
-    console.log('🎯 handleStandClick called:', { choice, standPosition, selectedStand, scenario: scenario.id })
-    if (selectedStand) return // Prevent multiple clicks
+    // Prevent clicks during transition or if already selected
+    if (selectedStand || isTransitioning || transitionLock.current) {
+      console.log('⚠️ Click ignored - already processing')
+      return
+    }
 
+    console.log('🖱️ Stand clicked:', choice)
     const timeToDecide = Date.now() - startTime
-    
+
     // Record the choice
     console.log('📝 Recording choice:', { scenarioId: scenario.id, choice, timeToDecide })
     recordChoice(scenario.id, choice, timeToDecide)
-    
+
     // Mark stand as selected
     setSelectedStand(choice)
     setStandOpen(choice)
-    
-    // Set avatar target to walk to the stand
-    const targetPos = [standPosition[0], 0, standPosition[2] + 1.5]
-    console.log('👤 Setting avatar target:', targetPos)
-    setAvatarTarget(targetPos)
-  }
 
-  const handleFerrisWheelClick = (choice, wheelPosition) => {
-    if (selectedStand) return // Prevent multiple clicks
+    // Calculate target position based on scenario type
+    let targetPos
 
-    const timeToDecide = Date.now() - startTime
-    
-    // Record the choice
-    recordChoice(scenario.id, choice, timeToDecide)
-    
-    // Mark wheel as selected
-    setSelectedStand(choice)
-    
-    // Set avatar target to walk to the ferris wheel
-    const targetPos = [wheelPosition[0], 0, wheelPosition[2] + 3]
+    if (scenario.type === 'carnival-attractions') {
+      // Stop at the BACK of the queue (queue starts at z=2, extends back)
+      const queueSize = choice === 'ferris-wheel'
+        ? (scenario.leftAttraction?.queueSize || 10)
+        : (scenario.rightAttraction?.queueSize || 2)
+      const queueLength = Math.ceil(queueSize / 2) * 0.7 + 1
+      targetPos = [standPosition[0], 0, 2 + queueLength + 1]
+    } else if (scenario.type === 'street-width') {
+      // Stop at the entrance of the street (arch is at z=2)
+      targetPos = [standPosition[0], 0, 3.5]
+    } else if (scenario.type === 'christmas-lights') {
+      // Stop at the entrance of the path (now bigger like streets)
+      targetPos = [standPosition[0], 0, 3.5]
+    } else {
+      // Default: walk close to the stand
+      targetPos = [standPosition[0], 0, standPosition[2] + 1.5]
+    }
+
+    console.log('🎯 Avatar walking to:', targetPos)
     setAvatarTarget(targetPos)
   }
 
   const handleAvatarReachTarget = () => {
-    console.log('🎯 Avatar reached target, waiting 1 second...')
-    // Wait 1 second at the stand, then return to middle
+    console.log('🚶 Avatar reached destination, waiting 3 seconds...')
+    // Wait 3 seconds at the destination, then return to starting position
     setTimeout(() => {
-      console.log('🔙 Setting avatar target back to starting position')
-      // Set target back to starting position
-      setAvatarTarget([0, 0, 3.5])
-    }, 1000)
+      console.log('🔙 Avatar returning to start')
+      setAvatarTarget([0, 0, 8]) // Return to starting position (further back)
+    }, 3000)
   }
 
   const handleAvatarReturnToMiddle = () => {
-    console.log('🏁 Avatar returned to middle, moving to next scenario')
-    // Reset states and move to next scenario
-    setSelectedStand(null)
-    setStandOpen(null)
-    setAvatarTarget(null)
-    nextScenario()
+    // Prevent double-triggering with a lock
+    if (transitionLock.current) {
+      console.log('⚠️ Transition already in progress, ignoring')
+      return
+    }
+    transitionLock.current = true
+    setIsTransitioning(true)
+
+    console.log('✨ Moving to next scenario...')
+
+    // Small delay before advancing to ensure clean state
+    setTimeout(() => {
+      nextScenario()
+    }, 100)
   }
+
+  // Check if we should show the decorative elements (not for new scenarios)
+  const showDecorativeElements = !['carnival-attractions', 'street-width', 'christmas-lights'].includes(scenario.type)
 
   return (
     <group>
       <Floor />
-      <FairEnvironment />
-      <Carousel />
+      {showDecorativeElements && <FairEnvironment />}
+      {showDecorativeElements && <Carousel />}
       
-      {/* Background Decorative Stands - 6 stands (3 per side) */}
-      <FairStand position={[-8, 0, -5]} color="#FF6347" isInteractive={false} />
-      <FairStand position={[-8, 0, -7]} color="#4169E1" isInteractive={false} />
-      <FairStand position={[-8, 0, -9]} color="#32CD32" isInteractive={false} />
-      
-      <FairStand position={[8, 0, -5]} color="#FFD700" isInteractive={false} />
-      <FairStand position={[8, 0, -7]} color="#FF69B4" isInteractive={false} />
-      <FairStand position={[8, 0, -9]} color="#9370DB" isInteractive={false} />
-
-      {/* Background NPCs - 16 NPCs distributed across the scene */}
-      <AnimatedNPC startPosition={[-7, 0, -4]} targetPosition={[-7, 0, -4]} delay={0} color="hsl(180, 70%, 60%)" />
-      <AnimatedNPC startPosition={[-6, 0, -6]} targetPosition={[-6, 0, -6]} delay={0} color="hsl(200, 70%, 60%)" />
-      <AnimatedNPC startPosition={[-7.5, 0, -8]} targetPosition={[-7.5, 0, -8]} delay={0} color="hsl(220, 70%, 60%)" />
-      <AnimatedNPC startPosition={[-8.5, 0, -6.5]} targetPosition={[-8.5, 0, -6.5]} delay={0} color="hsl(240, 70%, 60%)" />
-      
-      <AnimatedNPC startPosition={[7, 0, -4]} targetPosition={[7, 0, -4]} delay={0} color="hsl(0, 70%, 60%)" />
-      <AnimatedNPC startPosition={[6, 0, -6]} targetPosition={[6, 0, -6]} delay={0} color="hsl(20, 70%, 60%)" />
-      <AnimatedNPC startPosition={[7.5, 0, -8]} targetPosition={[7.5, 0, -8]} delay={0} color="hsl(40, 70%, 60%)" />
-      <AnimatedNPC startPosition={[8.5, 0, -6.5]} targetPosition={[8.5, 0, -6.5]} delay={0} color="hsl(60, 70%, 60%)" />
-      
-      <AnimatedNPC startPosition={[-9, 0, 2]} targetPosition={[-9, 0, 2]} delay={0} color="hsl(80, 70%, 60%)" />
-      <AnimatedNPC startPosition={[-10, 0, 0]} targetPosition={[-10, 0, 0]} delay={0} color="hsl(100, 70%, 60%)" />
-      <AnimatedNPC startPosition={[-8, 0, 1]} targetPosition={[-8, 0, 1]} delay={0} color="hsl(120, 70%, 60%)" />
-      <AnimatedNPC startPosition={[-9.5, 0, -2]} targetPosition={[-9.5, 0, -2]} delay={0} color="hsl(140, 70%, 60%)" />
-      
-      <AnimatedNPC startPosition={[9, 0, 2]} targetPosition={[9, 0, 2]} delay={0} color="hsl(260, 70%, 60%)" />
-      <AnimatedNPC startPosition={[10, 0, 0]} targetPosition={[10, 0, 0]} delay={0} color="hsl(280, 70%, 60%)" />
-      <AnimatedNPC startPosition={[8, 0, 1]} targetPosition={[8, 0, 1]} delay={0} color="hsl(300, 70%, 60%)" />
-      <AnimatedNPC startPosition={[9.5, 0, -2]} targetPosition={[9.5, 0, -2]} delay={0} color="hsl(320, 70%, 60%)" />
-
-      {/* Dogs - 4 dogs distributed across the scene */}
-      <Dog position={[-6.5, 0, 3]} color="#8B4513" />
-      <Dog position={[6.5, 0, 2.5]} color="#D2691E" />
-      <Dog position={[-9, 0, -3]} color="#A0522D" />
-      <Dog position={[8.5, 0, -3.5]} color="#654321" />
-
-      {/* Cats - 6 cats distributed across the scene */}
-      <Cat position={[-7.5, 0, 2]} color="#FFB6C1" />
-      <Cat position={[7, 0, 3]} color="#FFA07A" />
-      <Cat position={[-8.5, 0, -1]} color="#F0E68C" />
-      <Cat position={[9, 0, -1.5]} color="#DDA0DD" />
-      <Cat position={[-10.5, 0, -4]} color="#D3D3D3" />
-      <Cat position={[10, 0, -4.5]} color="#FFE4B5" />
-      
-      {/* Player Avatar */}
-      {avatar && (
-        <PlayerAvatar 
-          key={`player-avatar-${currentScenario}`}
-          avatarType={avatar.id} 
+      {/* Player Avatar - key forces re-mount on scenario change for clean state */}
+      {avatar && !isTransitioning && (
+        <PlayerAvatar
+          key={`avatar-scenario-${currentScenario}`}
+          avatarType={avatar.id}
           targetPosition={avatarTarget}
           onReachTarget={handleAvatarReachTarget}
           onReturnToMiddle={handleAvatarReturnToMiddle}
@@ -219,81 +197,106 @@ function GameEnvironment() {
       {scenario.type === 'animated-crowd' && scenario.leftStand && scenario.rightStand && scenario.leftStand.initialCount !== undefined && scenario.rightStand.initialCount !== undefined && (
         <>
           {/* Left stand */}
-          <FairStand 
-            key={`animated-stand-${currentScenario}-left`}
-            position={[-3.5, 0, -1]} 
-            color="#8B4513" 
+          <FairStand
+            position={[-3.5, 0, 0]}
+            color="#8B4513"
             choice="left"
             onStandClick={handleStandClick}
             isSelected={standOpen === 'left'}
           />
-          
+
           {/* Right stand */}
-          <FairStand 
-            key={`animated-stand-${currentScenario}-right`}
-            position={[3.5, 0, -1]} 
-            color="#8B4513" 
+          <FairStand
+            position={[3.5, 0, 0]}
+            color="#8B4513"
             choice="right"
             onStandClick={handleStandClick}
             isSelected={standOpen === 'right'}
           />
 
           {/* Animated NPCs arriving at stands */}
-          <AnimatedCrowdScene 
-            key={`animated-scene-${currentScenario}`}
+          <AnimatedCrowdScene
             leftStandConfig={scenario.leftStand}
             rightStandConfig={scenario.rightStand}
           />
         </>
       )}
 
-      {scenario.type === 'ferris-wheel-queue' && scenario.leftWheel && scenario.rightWheel && scenario.leftWheel.queueSize !== undefined && scenario.rightWheel.queueSize !== undefined && (
+      {scenario.type === 'carnival-attractions' && scenario.leftAttraction && scenario.rightAttraction && (
         <>
-          {/* Left ferris wheel with queue */}
-          <group key={`ferris-left-${currentScenario}`}>
-            <FerrisWheel 
-              position={[-5, 0, -2]} 
-              onClick={() => handleFerrisWheelClick('left', [-5, 0, -2])}
-              isClickable={!selectedStand}
+          {/* Ferris Wheel on the left with long queue */}
+          <group>
+            <FerrisWheel
+              position={[-5, 0, -2]}
+              onClick={handleStandClick}
+              isSelected={standOpen === 'ferris-wheel'}
+              choice="ferris-wheel"
             />
-            {/* Queue of NPCs for left wheel */}
-            {[...Array(scenario.leftWheel.queueSize)].map((_, i) => {
-              const row = Math.floor(i / 2)
-              const col = i % 2
-              return (
-                <AnimatedNPC
-                  key={`left-npc-${i}`}
-                  startPosition={[-5 + (col - 0.5) * 0.6, 0, 1 + row * 0.6]}
-                  targetPosition={[-5 + (col - 0.5) * 0.6, 0, 1 + row * 0.6]}
-                  delay={0}
-                  color={`hsl(${(i * 30) % 360}, 70%, 60%)`}
-                />
-              )
-            })}
+            <Queue
+              position={[-5, 0, 2]}
+              size={scenario.leftAttraction?.queueSize || 10}
+              direction="back"
+            />
           </group>
 
-          {/* Right ferris wheel with queue */}
-          <group key={`ferris-right-${currentScenario}`}>
-            <FerrisWheel 
-              position={[5, 0, -2]} 
-              onClick={() => handleFerrisWheelClick('right', [5, 0, -2])}
-              isClickable={!selectedStand}
+          {/* Carousel on the right with short queue */}
+          <group>
+            <InteractiveCarousel
+              position={[5, 0, -2]}
+              onClick={handleStandClick}
+              isSelected={standOpen === 'carousel'}
+              choice="carousel"
             />
-            {/* Queue of NPCs for right wheel */}
-            {[...Array(scenario.rightWheel.queueSize)].map((_, i) => {
-              const row = Math.floor(i / 2)
-              const col = i % 2
-              return (
-                <AnimatedNPC
-                  key={`right-npc-${i}`}
-                  startPosition={[5 + (col - 0.5) * 0.6, 0, 1 + row * 0.6]}
-                  targetPosition={[5 + (col - 0.5) * 0.6, 0, 1 + row * 0.6]}
-                  delay={0}
-                  color={`hsl(${(i * 30 + 180) % 360}, 70%, 60%)`}
-                />
-              )
-            })}
+            <Queue
+              position={[5, 0, 2]}
+              size={scenario.rightAttraction?.queueSize || 2}
+              direction="back"
+            />
           </group>
+        </>
+      )}
+
+      {scenario.type === 'street-width' && scenario.leftStreet && scenario.rightStreet && (
+        <>
+          {/* Narrow street on the left */}
+          <Street
+            position={[-5, 0, 0]}
+            width="narrow"
+            onClick={handleStandClick}
+            isSelected={standOpen === 'narrow'}
+            choice="narrow"
+          />
+
+          {/* Wide street on the right */}
+          <Street
+            position={[5, 0, 0]}
+            width="wide"
+            onClick={handleStandClick}
+            isSelected={standOpen === 'wide'}
+            choice="wide"
+          />
+        </>
+      )}
+
+      {scenario.type === 'christmas-lights' && scenario.leftPath && scenario.rightPath && (
+        <>
+          {/* Path WITH Christmas lights on the left */}
+          <ChristmasPath
+            position={[-5.5, 0, 0]}
+            hasLights={true}
+            onClick={handleStandClick}
+            isSelected={standOpen === 'lights'}
+            choice="lights"
+          />
+
+          {/* Path WITHOUT Christmas lights on the right */}
+          <ChristmasPath
+            position={[5.5, 0, 0]}
+            hasLights={false}
+            onClick={handleStandClick}
+            isSelected={standOpen === 'no-lights'}
+            choice="no-lights"
+          />
         </>
       )}
     </group>

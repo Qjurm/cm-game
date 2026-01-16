@@ -16,7 +16,7 @@ const useGameStore = create((set, get) => ({
   // Data collection
   choices: [],
   
-  // IMPORTANT: 6 scenarios total
+  // IMPORTANT: 8 scenarios total
   scenarios: [
     {
       id: 1,
@@ -47,7 +47,7 @@ const useGameStore = create((set, get) => ({
       type: 'animated-crowd',
       question: 'Choose a stand',
       leftStand: { initialCount: 3 },
-      rightStand: { 
+      rightStand: {
         initialCount: 1,
         arriving: [
           { count: 1, delay: 2000 },
@@ -58,14 +58,24 @@ const useGameStore = create((set, get) => ({
     },
     {
       id: 6,
-      type: 'ferris-wheel-queue',
-      question: 'Choose a ferris wheel',
-      leftWheel: {
-        queueSize: 20
-      },
-      rightWheel: {
-        queueSize: 5
-      }
+      type: 'carnival-attractions',
+      question: 'Which attraction would you visit?',
+      leftAttraction: { type: 'ferris-wheel', queueSize: 12 },
+      rightAttraction: { type: 'carousel', queueSize: 2 }
+    },
+    {
+      id: 7,
+      type: 'street-width',
+      question: 'Which path would you take?',
+      leftStreet: { width: 'narrow' },
+      rightStreet: { width: 'wide' }
+    },
+    {
+      id: 8,
+      type: 'christmas-lights',
+      question: 'Which path would you walk down?',
+      leftPath: { hasLights: true },
+      rightPath: { hasLights: false }
     }
   ],
 
